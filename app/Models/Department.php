@@ -10,17 +10,22 @@ class Department extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name'
+        'name',
+        'code',
+        'logo',
+        'description'
     ];
 
-    public function students() {
+    public function students()
+    {
         return $this->hasMany(Student::class);
     }
-    public function professors() {
+    public function professors()
+    {
         return $this->hasMany(Professor::class);
     }
-    public function courses(){
-        return $this->hasMany(Course::class);
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class);
     }
-
 }

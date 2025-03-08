@@ -15,7 +15,7 @@ class CourseContentFile extends Model
         'file_path'
     ];
 
-    public function courseContent() {
+    public function course_content() {
         return $this->belongsTo(CourseContent::class);
     }
 }

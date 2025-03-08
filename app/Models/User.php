@@ -25,6 +25,8 @@ class User extends Authenticatable
         'password',
     ];
 
+    protected $with = ['user_type'];
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -45,19 +47,22 @@ class User extends Authenticatable
     ];
 
     //a single user belongs to only one usertype (can belong to either [1, admin], [2, professor], or [3, student])
-    public function userType() {
+    public function user_type()
+    {
         return $this->belongsTo(UserType::class);
     }
 
     //a single user can only have one of either (can either be admin/student/prof)
-    public function admin() {
+    public function admin()
+    {
         return $this->hasOne(Admin::class);
     }
-    public function student() {
+    public function student()
+    {
         return $this->hasOne(Student::class);
     }
-    public function professor() {
+    public function professor()
+    {
         return $this->hasOne(Professor::class);
     }
-
 }

@@ -14,15 +14,20 @@ class Professor extends Model
         'department_id'
     ];
 
-    public function user() {
+    protected $with = ['user', 'department'];
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function department() {
+    public function department()
+    {
         return $this->belongsTo(Department::class);
     }
 
-    public function courses() {
+    public function courses()
+    {
         return $this->belongsToMany(Course::class);
     }
 }

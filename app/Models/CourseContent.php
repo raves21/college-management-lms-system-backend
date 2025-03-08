@@ -18,7 +18,7 @@ class CourseContent extends Model
         return $this->belongsTo(Course::class);
     }
 
-    public function courseContentFiles(){
+    public function course_content_files(){
         return $this->hasMany(CourseContentFile::class);
     }
 }
