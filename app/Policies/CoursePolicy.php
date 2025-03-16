@@ -41,6 +41,11 @@ class CoursePolicy
         }
     }
 
+    public function getMembersThatCanBeAdded(User $user)
+    {
+        return $user->user_type_id === UserType::ADMIN;
+    }
+
     /**
      * Determine whether the user can create models.
      *

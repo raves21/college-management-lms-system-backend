@@ -6,7 +6,6 @@ use App\Http\Requests\Auth\Login;
 use App\Http\Resources\AdminResource;
 use App\Http\Resources\ProfessorResource;
 use App\Http\Resources\StudentResource;
-use App\Http\Resources\UserResource;
 use App\Models\Admin;
 use App\Models\Professor;
 use App\Models\Student;
@@ -14,7 +13,6 @@ use App\Models\User;
 use App\Models\UserType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -34,10 +32,10 @@ class AuthController extends Controller
             $admin = Admin::where('user_id', $foundUser->id)->first();
             return ['user' => new AdminResource($admin), 'token' => $apiToken,];
         } else if ($userType === UserType::PROFESSOR) {
-            $professor = Professor::where('user_id', $foundUser->id)->first();
+            $professor = Professor::where('user_id', $foundUser->id)->with('department:id,name,code')->first();
             return ['user' => new ProfessorResource($professor), 'token' => $apiToken,];
         } else {
-            $student = Student::where('user_id', $foundUser->id)->first();
+            $student = Student::where('user_id', $foundUser->id)->with('department:id,name,code')->first();
             return ['user' => new StudentResource($student), 'token' => $apiToken];
         }
     }
@@ -48,20 +46,19 @@ class AuthController extends Controller
         return ['message' => 'logged out successfully.'];
     }
 
-    public function me()
+    public function me(Request $request)
     {
-        $currentUser = User::find(auth()->user()->id);
-        switch (auth()->user()->user_type_id) {
+        $currentUser = $request->user();
+        switch ($currentUser->user_type_id) {
             case UserType::ADMIN:
                 $currentUserAdmin = Admin::where('user_id', $currentUser->id)->first();
                 return new AdminResource($currentUserAdmin);
             case UserType::STUDENT:
-                $currentUserStudent = Student::where('user_id', $currentUser->id)->first();
-                Log::info($currentUserStudent);
+                $currentUserStudent = Student::where('user_id', $currentUser->id)->with('department')->first();
                 return new StudentResource($currentUserStudent);
             case UserType::PROFESSOR:
-                $currentUserProfessor = Professor::where('user_id', $currentUser->id)->first();
-                return new StudentResource($currentUserProfessor);
+                $currentUserProfessor = Professor::where('user_id', $currentUser->id)->with('department')->first();
+                return new ProfessorResource($currentUserProfessor);
         }
     }
 }

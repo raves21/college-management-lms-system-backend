@@ -17,7 +17,6 @@ class UserResource extends JsonResource
         return [
             'id' => $this->id,
             'userType' => new UserTypeResource($this->whenLoaded('user_type')),
-            'department' => new DepartmentResource($this->whenLoaded('department')),
             'email' => $this->email,
             'firstName' => $this->first_name,
             'lastName' => $this->last_name

@@ -14,18 +14,17 @@ class CourseResource extends JsonResource
      */
     public function toArray($request)
     {
-        $departments = DepartmentResource::collection($this->whenLoaded('departments'));
         return [
             'id' => $this->id,
             'name' => $this->name,
             'code' => $this->code,
-            'departments' => $departments->collection?->map(function ($department) {
-                return [
+            'departments' => $this->whenLoaded('departments', function () {
+                return $this->departments->map(fn($department) => [
                     'id' => $department->id,
                     'name' => $department->name,
                     'code' => $department->code
-                ];
-            })
+                ]);
+            })->toArray()
         ];
     }
 }

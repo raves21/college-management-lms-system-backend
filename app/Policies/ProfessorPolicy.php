@@ -19,7 +19,6 @@ class ProfessorPolicy
      */
     public function viewAny(User $user)
     {
-        Log::info("VIEWANY PROFESSOR");
         return true;
     }
 

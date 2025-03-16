@@ -50,6 +50,12 @@ class DepartmentPolicy
         }
     }
 
+    public function removeCourseFromDepartment(User $user, Department $department)
+    {
+
+        return $user->user_type_id === UserType::ADMIN;
+    }
+
     /**
      * Determine whether the user can create models.
      *

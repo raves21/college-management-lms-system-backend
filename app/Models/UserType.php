@@ -14,7 +14,8 @@ class UserType extends Model
     public const STUDENT = 3;
 
     //a single user type can be associated to many users (an admin can be either user 1,3,5. student can either be user 43,12,55 etc.)
-    public function users() {
+    public function users()
+    {
         return $this->hasMany(User::class);
     }
 }

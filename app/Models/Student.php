@@ -14,7 +14,7 @@ class Student extends Model
         'department_id'
     ];
 
-    protected $with = ['user', 'department'];
+    protected $with = ['user'];
 
     public function user()
     {

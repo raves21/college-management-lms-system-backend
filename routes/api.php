@@ -51,10 +51,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', 'addStudent');
             Route::delete('/{student}', 'removeStudent');
         });
+        Route::get('/studentsThatCanBeAdded', 'getStudentsThatCanBeAdded');
+
         Route::prefix('professors')->group(function () {
             Route::get('/', 'getProfessors');
             Route::post('/', 'addProfessor');
             Route::delete('/{professor}', 'removeProfessor');
         });
+        Route::get('/professorsThatCanBeAdded', 'getProfessorsThatCanBeAdded');
     });
 });

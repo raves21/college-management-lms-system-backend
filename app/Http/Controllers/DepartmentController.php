@@ -24,20 +24,19 @@ class DepartmentController extends Controller
     public function getCourses(Department $department)
     {
         $this->authorize('getDepartmentMembers', $department);
-        $departmentCourses = $department->courses()->with(['departments' => function ($q) {
-            $q->select('departments.id', 'departments.name', 'departments.code');
-        }])->paginate();
+        $departmentCourses = $department->courses()->with('departments:id,name,code')->paginate();
         return CourseResource::collection($departmentCourses);
     }
 
     public function addCourseToDepartment(Course $course, Department $department)
     {
         $department->courses()->syncWithoutDetaching($course);
-        return ['message' => 'course successfully added to department'];
+        return ['message' => "course {$course->id} successfully added to department {$department->id}"];
     }
 
     public function removeCourseFromDepartment(Course $course, Department $department)
     {
+        $this->authorize('removeCourseFromDepartment', $department);
         //get all students' ids from this course that belong to the department
         $studentsFromDepartment = $course->students()->where('department_id', $department->id)->pluck('id');
 
@@ -53,7 +52,7 @@ class DepartmentController extends Controller
         //detach the course from the department
         $course->departments()->detach($department->id);
 
-        return ['message' => 'course successfully removed from department.'];
+        return ['message' => "course {$course->id} successfully removed from department {$department->id}."];
     }
 
     public function getProfessors(Department $department)
@@ -95,7 +94,7 @@ class DepartmentController extends Controller
     public function destroy(Department $department)
     {
         $this->authorize('delete', Department::class);
-        $this->authorize('forceDelete');
+        $this->authorize('forceDelete', Department::class);
         Department::destroy($department->id);
         return ['message' => 'deleted successfully.'];
     }

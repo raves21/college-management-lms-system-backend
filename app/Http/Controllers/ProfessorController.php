@@ -16,7 +16,7 @@ class ProfessorController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Professor::class);
-        return ProfessorResource::collection(Professor::paginate());
+        return ProfessorResource::collection(Professor::with('department')->paginate());
     }
 
     public function store(CreateProfessor $request)
@@ -26,13 +26,16 @@ class ProfessorController extends Controller
         $newProfessor = User::create([...$validated, 'user_type_id' => UserType::PROFESSOR])
             ->professor()
             ->create(['department_id' => $validated['department_id']]);
-        return new ProfessorResource($newProfessor->load(['user', 'department']));
+        return new ProfessorResource($newProfessor->load([
+            'user',
+            'department:id,name,code'
+        ]));
     }
 
     public function show(Professor $professor)
     {
         $this->authorize('viewAny', Professor::class);
-        return new ProfessorResource($professor);
+        return new ProfessorResource($professor->load('department'));
     }
 
     public function update(UpdateProfessor $request, Professor $professor)
@@ -43,7 +46,7 @@ class ProfessorController extends Controller
 
         //if department_id is set, update the professor's department_id
         if (isset($validated['department_id'])) {
-            $professor->update(['department_id' => $validated['department_id']]);
+            $professor->update(Arr::only($validated, ['department_id']));
         }
 
         if (isset($validated['password'])) {
@@ -52,9 +55,10 @@ class ProfessorController extends Controller
 
         //update the professor's user related model
         $professor->user->update(Arr::only($validated, ['email', 'first_name', 'last_name', 'password']));
-        return new ProfessorResource($professor->load(['user', 'department' => function ($q) {
-            $q->select('id', 'name', 'code');
-        }]));
+        return new ProfessorResource($professor->load([
+            'user',
+            'department:id,name,code'
+        ]));
     }
 
     public function destroy(Professor $professor)

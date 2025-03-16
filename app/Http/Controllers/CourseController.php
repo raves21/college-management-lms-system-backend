@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Course\CreateCourse;
 use App\Http\Requests\Course\AddProfessorInCourse;
 use App\Http\Requests\Course\AddStudentInCourse;
-use App\Http\Requests\Course\AttachCourseToDepartments;
 use App\Http\Requests\Course\UpdateCourse;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\ProfessorResource;
@@ -13,7 +12,7 @@ use App\Http\Resources\StudentResource;
 use App\Models\Course;
 use App\Models\Professor;
 use App\Models\Student;
-use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 class CourseController extends Controller
@@ -21,14 +20,14 @@ class CourseController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Course::class);
-        return CourseResource::collection(Course::paginate());
+        return CourseResource::collection(Course::with('departments')->paginate());
     }
 
 
     public function getStudents(Course $course)
     {
         $this->authorize('view', $course);
-        $studentsInCourse = $course->students()->paginate();
+        $studentsInCourse = $course->students()->with('department:id,name,code')->paginate();
         return StudentResource::collection($studentsInCourse);
     }
 
@@ -36,21 +35,27 @@ class CourseController extends Controller
     {
         $this->authorize('toggleCourseMembers', Course::class);
         $validated = $request->validated();
-        $course->students()->syncWithoutDetaching($validated['id']);
-        return ['message' => "successfully added student in course."];
+        $student = Student::find($validated['id']);
+        //check if student's department is in the course's departments
+        $studentDeptInCourseDepts = $course->departments()->where('departments.id', $student->department_id)->exists();
+        if (!$studentDeptInCourseDepts) {
+            return response()->json(['error' => 'Invalid. Student does not belong in the course\'s departments.'], 400);
+        }
+        $course->students()->syncWithoutDetaching($student->id);
+        return ['message' => "successfully added student {$student->id} to course {$course->id}."];
     }
 
     public function removeStudent(Course $course, Student $student)
     {
         $this->authorize('toggleCourseMembers', Course::class);
         $course->students()->detach($student->id);
-        return ['message' => "successfully removed student in course."];
+        return ['message' => "successfully removed student {$student->id} from course {$course->id}."];
     }
 
     public function getProfessors(Course $course)
     {
         $this->authorize('view', $course);
-        $professorsInCourse = $course->professors()->paginate();
+        $professorsInCourse = $course->professors()->with(['department' => fn($q) => $q->select('name', 'code')])->paginate();
         return ProfessorResource::collection($professorsInCourse);
     }
 
@@ -59,14 +64,37 @@ class CourseController extends Controller
         $this->authorize('toggleCourseMembers', Course::class);
         $validated = $request->validated();
         $course->professors()->syncWithoutDetaching($validated['id']);
-        return ['message' => "successfully added professor in course."];
+        return ['message' => "successfully added professor " . $validated['id'] . "to course {$course->id}."];
     }
 
     public function removeProfessor(Course $course, Professor $professor)
     {
         $this->authorize('toggleCourseMembers', Course::class);
         $course->professors()->detach($professor->id);
-        return ['message' => "successfully removed professor in course."];
+        return ['message' => "successfully removed professor {$professor->id} from course {$course->id}."];
+    }
+
+    public function getStudentsThatCanBeAdded(Course $course)
+    {
+        $this->authorize('getMembersThatCanBeAdded', Course::class);
+        $studentsThatCanBeAdded = Student::whereDoesntHave('courses', function ($query) use ($course) {
+            $query->where('course_id', $course->id);
+        })
+            ->whereIn('department_id', $course->departments->pluck('id'))
+            ->with('department:id,name,code')
+            ->get();
+        return StudentResource::collection($studentsThatCanBeAdded);
+    }
+
+    public function getProfessorsThatCanBeAdded(Course $course)
+    {
+        $this->authorize('getMembersThatCanBeAdded', Course::class);
+        $professorsThatCanBeAdded = Professor::whereDoesntHave('courses', function ($query) use ($course) {
+            $query->where('course_id', $course->id);
+        })
+            ->with('department:id,name,code')
+            ->get();
+        return ProfessorResource::collection($professorsThatCanBeAdded);
     }
 
     public function store(CreateCourse $request)
@@ -75,17 +103,13 @@ class CourseController extends Controller
         $validated = $request->validated();
         $newCourse = Course::create(['name' => $validated['name'], 'code' => $validated['code']]);
         $newCourse->departments()->attach($validated['department_ids']);
-        return new CourseResource($newCourse->load(['departments' => function ($q) {
-            $q->select('departments.id', 'departments.name', 'departments.code');
-        }]));
+        return new CourseResource($newCourse->load('departments:id,name,code'));
     }
 
     public function show(Course $course)
     {
         $this->authorize('view', $course);
-        return new CourseResource($course->load(['departments' => function ($q) {
-            $q->select('departments.id', 'departments.name', 'departments.code');
-        }]));
+        return new CourseResource($course->load('departments:id,name,code'));
     }
 
     public function update(UpdateCourse $request, Course $course)
@@ -116,10 +140,8 @@ class CourseController extends Controller
             }
         }
 
-        $course->update(['name' => $validated['name'], 'code' => $validated['code']]);
-        return new CourseResource($course->load(['departments' => function ($q) {
-            $q->select('departments.id', 'departments.name', 'departments.code');
-        }]));
+        $course->update(Arr::only($validated, ['name', 'code']));
+        return new CourseResource($course->load('departments:id,name,code'));
     }
 
     public function destroy(Course $course)

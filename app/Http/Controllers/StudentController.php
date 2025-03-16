@@ -17,7 +17,7 @@ class StudentController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Student::class);
-        return StudentResource::collection(Student::paginate());
+        return StudentResource::collection(Student::with('department')->paginate());
     }
 
     public function store(CreateStudent $request)
@@ -28,7 +28,10 @@ class StudentController extends Controller
         $newStudent = User::create([...$validated, 'user_type_id' => UserType::STUDENT])
             ->student()
             ->create(['department_id' => $validated['department_id']]);
-        return new StudentResource($newStudent->load(['user', 'department']));
+        return new StudentResource($newStudent->load([
+            'user',
+            'department:id,name,code'
+        ]));
     }
 
     public function show(Student $student)
@@ -44,7 +47,7 @@ class StudentController extends Controller
 
         //if department_id is set, update the student's department_id
         if (isset($validated['department_id'])) {
-            $student->update(['department_id' => $validated['department_id']]);
+            $student->update(Arr::only($validated, ['department_id']));
         }
 
         if (isset($validated['password'])) {
@@ -53,14 +56,16 @@ class StudentController extends Controller
 
         //update the student's user related model
         $student->user->update(Arr::only($validated, ['email', 'first_name', 'last_name', 'password']));
-        return new StudentResource($student->load(['user', 'department' => function ($q) {
-            $q->select('id', 'name', 'code');
-        }]));
+        return new StudentResource($student->load([
+            'user',
+            'department:id,name,code'
+        ]));
     }
 
     public function destroy(Student $student)
     {
         $this->authorize('delete', Student::class);
+        $this->authorize('forceDelete', Student::class);
         Student::destroy($student->id);
         return ['message' => 'deleted successfully.'];
     }

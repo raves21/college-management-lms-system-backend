@@ -14,14 +14,9 @@ class AdminResource extends JsonResource
      */
     public function toArray($request)
     {
-        $user = new UserResource($this->whenLoaded('user'));
-        $userType = new UserTypeResource($user->user_type);
         return [
-            'id' => $user->id,
-            'firstName' => $user->first_name,
-            'lastName' => $user->last_name,
-            'userType' => $userType,
-            'email' => $user->email
+            'id' => $this->id,
+            'userProfile' => new UserResource($this->whenLoaded('user'))
         ];
     }
 }
